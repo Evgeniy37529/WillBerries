@@ -21,7 +21,10 @@ const viewSweaters = document.querySelector('.sweaters');
 const showAcsessories = document.querySelectorAll('.show-acsessories');
 const showClothing = document.querySelectorAll('.show-clothing');
 const cartTable = document.querySelector('.cart-table__goods');
-console.log(cartTable);
+const cartCount = document.querySelector('.cart-count');
+const btnClearCart = document.querySelector('.clear-cart');
+const cardTableTotal = document.querySelector('.card-table__total');
+//console.log(modalForm);
 
 
 const getGoods = async function() {
@@ -35,15 +38,11 @@ const getGoods = async function() {
 
 const cart = {
 	cartGoods:[
-		{	id: '999',
-			name: 'Часы',
-			price: '100',
-			count: 2,
-		}
+		
 	],
 	renderGoods(){
 		cartTable.textContent = '';
-		cart.cartGoods.forEach(({id, name, price, count}) =>{
+		this.cartGoods.forEach(({id, name, price, count}) =>{
 			const tr = document.createElement('tr');
 			tr.className = 'cart-item';
 			tr.dataset.id = id;
@@ -56,9 +55,13 @@ const cart = {
 			<td>${price * count}$</td>
 			<td><button class="cart-btn-delete">x</button></td>
 		</tr>
-			`
+			`;
 			cartTable.append(tr);
 		})
+		const total = this.cartGoods.reduce((sum, item) =>{
+			return sum + item.count * item.price;
+		}, 0);
+		cardTableTotal.textContent = total;
 	},
 	plusGoods(id){
 		for(const item of this.cartGoods){
@@ -66,14 +69,18 @@ const cart = {
 				item.count++;
 				break;
 			}
+			
 		}
 		this.renderGoods();
+		this.countForCart();
 	},
 	minusGoods(id){
 		for(const item of this.cartGoods){
 			if(id === item.id){
 				if(item.count <= 1){
-					this.deleteGoods(id)
+					this.deleteGoods(id);
+					
+					
 				}else{
 					item.count--;
 				}
@@ -81,15 +88,22 @@ const cart = {
 			}
 		}
 		this.renderGoods();
+		this.countForCart();
 	},
 	deleteGoods(id){
 		this.cartGoods = this.cartGoods.filter(item => item.id !== id);
 		this.renderGoods();
+		this.countForCart();
+		if(this.cartGoods.length === 0){
+			this.clearCart();
+		}
 	},
 	addGoods(id){
 		const goodItem = this.cartGoods.find(item => item.id === id);
 		if(goodItem){
 			this.plusGoods(id);
+			//this.countForCart();
+			
 		}else{
 			getGoods()
 						.then(data => data.find(item => item.id === id))
@@ -100,9 +114,29 @@ const cart = {
 								id,
 								count: 1,
 							});
+							this.countForCart();
 						});
 		}
 	},
+	countForCart(){
+		cartCount.textContent = this.cartGoods.reduce((sum , item) =>{
+			return sum + item.count;
+		}, 0)
+		
+		/*
+		const count = this.cartGoods.length;
+		if(count === 0){
+			cartCount.innerHTML = 0;
+		}else{
+			cartCount.innerHTML = count;
+		}	*/
+	},
+	clearCart(){
+		this.cartGoods.length = 0;
+		this.countForCart();
+		this.renderGoods();
+		
+	}
 }
 
 document.body.addEventListener('click' , event =>{
@@ -111,6 +145,8 @@ document.body.addEventListener('click' , event =>{
 		cart.addGoods(addToCart.dataset.id);
 	}
 })
+
+btnClearCart.addEventListener('click' , cart.clearCart.bind(cart));
 
 cartTable.addEventListener('click' , event =>{
 	const target = event.target;
@@ -130,14 +166,10 @@ cartTable.addEventListener('click' , event =>{
 	}
 	
 })
-cart.renderGoods();
-cart.addGoods('001');
-
-//cart.plusGoods();
-
 
 const openModal = function(){
 	modalCart.classList.add('show');
+	cart.renderGoods();
 }
 
 const closeModal = function(){
@@ -148,7 +180,7 @@ buttonCart.addEventListener('click' , openModal);
 
 modalCart.addEventListener('click' , function(event){
 	const target = event.target;
-	if(target.classList.contains('modal-close')){
+	if(target.classList.contains('overlay') || target.classList.contains('modal-close')){
 		closeModal()
 	}
 });
@@ -238,4 +270,35 @@ showClothing.forEach(item =>{
 	filterCards('category' , 'Clothing');
 	});
 });
+
+//sendForm
+
+const modalForm = document.querySelector('.modal-form');
+const sendForm =  (postData) => fetch('server.php' , {
+		method: 'POST',
+		body: postData,
+	})
+
+
+modalForm.addEventListener('submit' , event =>{
+	event.preventDefault();
+	const formData = new FormData(modalForm);
+	formData.append('cart' , JSON.stringify(cart.cartGoods));
+	sendForm(formData).then(response =>{
+							if(!response.ok){
+								throw new Error(response.status);
+							}
+							alert('Спасибо, ваш заказ принят');
+						})
+						.catch((err) =>{
+							alert('Повторите попытку позже');
+							console.error(err);
+						})
+						.finally(() =>{
+							closeModal();
+							modalForm.reset();
+							cart.clearCart();
+						});
+});
+//sendForm('reffr');
 

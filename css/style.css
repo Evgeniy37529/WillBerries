@@ -511,3 +511,14 @@ button {
     }
 
 }
+
+.clear-cart{
+    display: block;
+    wrap: none;
+    background: rgb(151, 20, 3);
+    color: #fff;
+    margin-left: auto;
+    width: 100px;
+    margin-bottom: 3px;
+    border-radius: 20px;
+}
